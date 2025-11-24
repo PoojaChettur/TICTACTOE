@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Cyber Tic Tac Toe — 5 Matches</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --neon:#00f6ff;
+  --accent:#ff00ff;
+  --bg1:#000007;
+  --bg2:#05081a;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:'Orbitron',sans-serif;
+  background: radial-gradient(circle at center, var(--bg1) 10%, var(--bg2) 100%);
+  color:var(--neon);
+  height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+}
+
+/* container */
+.app { width:100%; max-width:980px; margin:24px; text-align:center; }
+
+/* intro */
+.intro { height:420px; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:18px; pointer-events:auto; }
+.title { font-size:48px; letter-spacing:3px; color:var(--neon); text-shadow: 0 0 18px rgba(0,246,255,.18), 0 0 40px rgba(0,246,255,.08); opacity:0; transform:translateY(-12px) scale(.98); animation: titleIn 900ms ease forwards; }
+.subtitle { color:var(--accent); font-size:20px; opacity:0; transform:translateY(8px); text-shadow: 0 0 12px rgba(255,0,255,.12); animation: subIn 900ms 700ms ease forwards; }
+.match-buttons { margin-top:12px; display:flex; gap:20px; flex-wrap:wrap; justify-content:center; opacity:0; transform:translateY(10px); animation: btnIn 900ms 1400ms ease forwards; }
+.neon-btn { padding:16px 28px; border-radius:12px; background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); color:white; font-weight:700; border:2px solid rgba(0,246,255,0.18); box-shadow: 0 0 28px rgba(0,246,255,.08), inset 0 0 10px rgba(0,246,255,.02); cursor:pointer; font-size:16px; transition: all .18s ease; }
+.neon-btn:hover{ transform:translateY(-4px) scale(1.02); box-shadow: 0 0 40px rgba(0,246,255,.22) }
+@keyframes titleIn { to { opacity:1; transform:none } }
+@keyframes subIn { to { opacity:1; transform:none } }
+@keyframes btnIn { to { opacity:1; transform:none } }
+
+/* game */
+.game { display:none; flex-direction:column; gap:18px; align-items:center; }
+.top-row { display:flex; gap:18px; align-items:center; justify-content:center; flex-wrap:wrap; }
+.scoreboard { padding:10px 16px; border-radius:10px; background:linear-gradient(180deg, rgba(0,0,0,.25), rgba(255,255,255,0.02)); border:1px solid rgba(0,246,255,0.06); box-shadow: 0 0 18px rgba(0,246,255,.04); color:#fff; }
+.round { color:var(--accent); font-weight:700; text-shadow:0 0 8px rgba(255,0,255,.12); }
+.board { display:grid; grid-template-columns:repeat(3,120px); gap:14px; padding:8px; border-radius:14px; background:linear-gradient(180deg, rgba(0,0,0,.12), rgba(0,0,0,.04)); }
+.cell { width:120px; height:120px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:34px; color:var(--neon); background:linear-gradient(180deg,#05060a,#081426); border:2px solid rgba(0,246,255,0.12); box-shadow: 0 0 22px rgba(0,246,255,0.06); cursor:pointer; transition:all .18s ease; position:relative; user-select:none; }
+.cell:hover { transform:translateY(-6px); box-shadow: 0 0 40px rgba(0,246,255,0.12) }
+.cell.golden { border-color:gold; box-shadow: 0 0 28px gold, inset 0 0 12px rgba(255,215,0,.04); }
+
+.controls { display:flex; gap:12px; justify-content:center; align-items:center; }
+#resetBtn { padding:10px 18px; border-radius:10px; border:none; background:var(--accent); color:#000; font-weight:700; cursor:pointer; box-shadow: 0 0 18px rgba(255,0,255,.14); }
+#winner { color:#a6ff8f; text-shadow: 0 0 12px rgba(166,255,143,.14); min-height:26px; }
+
+/* popup */
+#overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.65); z-index:200; }
+#question-box { position:fixed; left:50%; top:50%; transform:translate(-50%,-50%) scale(.95); width:360px; max-width:calc(100% - 40px); background:linear-gradient(180deg, rgba(6,8,18,.98), rgba(8,10,26,.98)); border:1px solid rgba(0,246,255,.06); border-radius:12px; padding:18px; color:var(--neon); box-shadow: 0 0 40px rgba(0,246,255,.06); opacity:0; z-index:300; transition:opacity .22s ease, transform .22s ease; display:none; }
+#question-box.active { display:block; opacity:1; transform:translate(-50%,-50%) scale(1); }
+#question-text { text-align:left; color:#fff; margin-bottom:14px; min-height:60px; line-height:1.3; white-space:pre-line; }
+.popup-buttons{ display:flex; gap:12px; justify-content:center; }
+.btn-correct{ background:#00ff66; color:#002; border:none; padding:10px 16px; border-radius:8px; font-weight:700; cursor:pointer; box-shadow: 0 0 16px rgba(0,255,102,.08) }
+.btn-pass{ background:#ff2d6f; color:#fff; border:none; padding:10px 16px; border-radius:8px; font-weight:700; cursor:pointer; box-shadow: 0 0 16px rgba(255,45,111,.08) }
+
+/* responsive */
+@media (max-width:480px){
+  .board{grid-template-columns:repeat(3,88px); gap:10px}
+  .cell{width:88px;height:88px;font-size:22px}
+  #question-box{width:92%}
+}
+</style>
+</head>
+<body>
+  <div class="app">
+    <!-- INTRO SCREEN -->
+    <div id="intro" class="intro">
+      <div class="title">🧠 CYBER TIC TAC TOE 🔐</div>
+      <div class="subtitle">SELECT MATCH</div>
+      <div class="match-buttons">
+        <button class="neon-btn" data-match="1">MATCH 1</button>
+        <button class="neon-btn" data-match="2">MATCH 2</button>
+        <button class="neon-btn" data-match="3">MATCH 3</button>
+        <button class="neon-btn" data-match="4">MATCH 4</button>
+        <button class="neon-btn" data-match="5">MATCH 5</button>
+      </div>
+      <div class="match-select-note" style="color:rgba(255,255,255,0.7); margin-top:6px; font-size:13px">Intro plays every page reload</div>
+    </div>
+
+    <!-- GAME UI -->
+    <div id="game" class="game">
+      <div class="top-row">
+        <div class="scoreboard">Player X: <span id="scoreX">0</span></div>
+        <div class="round">Round <span id="roundCount">1</span></div>
+        <div class="scoreboard">Player O: <span id="scoreO">0</span></div>
+      </div>
+
+      <div class="board" id="board">
+        <div class="cell" data-index="0"></div>
+        <div class="cell" data-index="1"></div>
+        <div class="cell" data-index="2"></div>
+        <div class="cell" data-index="3"></div>
+        <div class="cell" data-index="4"></div>
+        <div class="cell" data-index="5"></div>
+        <div class="cell" data-index="6"></div>
+        <div class="cell" data-index="7"></div>
+        <div class="cell" data-index="8"></div>
+      </div>
+
+      <div class="controls">
+        <button id="resetBtn">🔄 Reset Game</button>
+      </div>
+
+      <div id="winner"></div>
+    </div>
+  </div>
+
+  <!-- overlay & popup -->
+  <div id="overlay"></div>
+  <div id="question-box">
+    <div id="question-text"></div>
+    <div class="popup-buttons">
+      <button class="btn-correct" id="correctBtn">✅ Correct</button>
+      <button class="btn-pass" id="passBtn">⏭️ Pass</button>
+    </div>
+  </div>
+
+<script>
+/* -------------------- MATCH QUESTION DATA (5 matches) --------------------
+  Q5 will be displayed as "Emoji Connections:" with the two emoji sets
+  shown vertically using (i) and (ii).
+  Q6 if it's a "Cyber Word Recalling" type, we print exactly "Cyber Word Recalling".
+  Q8 follows the PDF where available; for matches 1 & 2 earlier you asked "Cyber Word Guessing".
+----------------------------------------------------------------------- */
+
+const MATCHES = {
+  1: [
+    "Match the following",                                              // 1A
+    "Which of the following abbreviation is not standard? (FTP, JSON, SMTQ, SSH, MIME)", //2A
+    "Is RSA a symmetric or asymmetric encryption algorithm?",           //3A
+    "I’m not a person, yet I handle confidential data. I’m trusted by systems, but I can be forged. What am I?", //4A
+    // 5A emoji connections (vertical)
+    "Emoji Connections:\n(i) 🧑‍💻💀💻\n(ii) 🧑‍💻🔑📤",
+    "Cyber Word Recalling",                                              //6A (show as this)
+    "Can you identify which algorithm produced this hash? (64 chars)\n0236d3966d1b248cf3d1d7f77cd4a7d635a82c2a001420f38056b7d38de53f92", //7A
+    "Cyber Word Guessing",                                               //8A
+    "Explain the process: Quishing"                                       //9A
+  ],
+  2: [
+    "Match the following",                                               //1B
+    "Which of the following abbreviation is not standard? (BITS, BIOS, RAID, SCSI)", //2B
+    "What are some two-factor authentication (2FA) mechanisms?",         //3B
+    "I’m a one-way street — once you pass, you can’t go back. I turn data into gibberish, but only one way.", //4B
+    "Emoji Connections:\n(i) 🎭🔓💻\n(ii) 💣📱📶",                        //5B
+    "Cyber Word Recalling",                                               //6B
+    "Riddle: The hash 098f6bcd4621d373cade4e832627b4f6 is 32 characters long. Which hashing algorithm produced it?", //7B
+    "Cyber Word Guessing",                                               //8B
+    "Explain the process: Race Condition"                                 //9B
+  ],
+  3: [
+    "Match the following",                                               //1C
+    "Which of the following abbreviation is not standard? (OS, IP, MAC, CWE, MANT)", //2C
+    "What is an example of PII?",                                        //3C
+    "I’m a silent observer, spying whatever you touch on a keyboard. You won’t know I’m there until it’s too late.", //4C (keylogger)
+    "Emoji Connections:\n(i) 🧬🔢▶🔓\n(ii) 🧑‍💻🎩🕶",                     //5C
+    "Cyber Word Recalling",                                               //6C
+    "Name any 3 of the 7 OSI layers.",                                   //7C
+    "Cyber terminology guessing: Digital data, E-complaint, Court, Tools, Evidence Analysis", //8C
+    "Explain the process: Cryptojacking"                                  //9C
+  ],
+  4: [
+    "Match the following",                                               //1D
+    "Which of the following is a real abbreviation? (IGOTR, BLOB, ZAPT, FIZZ, RUST)", //2D
+    "What is the name of the protocol used for secure remote shell access?", //3D (SSH)
+    "I’m a snack you munch, but I am also in your computer — I remember what you do, but I can also betray you.", //4D (cookie/cache)
+    "Emoji Connections:\n(i) 🧑‍💻💸🧊\n(ii) 🔑👥🔄",                       //5D
+    "Cyber Word Recalling",                                               //6D
+    "I’m at the bookstore looking for a guide on the CIA triad. I already know Confidentiality, but I forgot the ___ and ___ .", //7D
+    "Cyber terminology guessing: Data Theft, Passive, Social Engineering, Intercept, Hearing", //8D
+    "Explain the process: Honeypot"                                       //9D
+  ],
+  5: [
+    "Match the following",                                               //1E
+    "Which is a real malware-related term? (Ghoulware, Spock, Zombos, Spoof, Creep)", //2E
+    "What is the term for a vulnerability that is unknown to the vendor and has no patch?", //3E (Zero-day)
+    "I wear many masks — a helper, a file, a link. I enter quietly, but my purpose is loud. I corrupt, I spy, I destroy. What am I?", //4E (malware)
+    "Emoji Connections:\n(i) 🌐👣🔎\n(ii) 🕵️‍♀️🔍🧩",                      //5E
+    "Cyber Word Recalling",                                               //6E
+    "In digital signatures, the sender first ___ the data and then ___ the data which is reversed in the receiver’s side to verify the signature.", //7E (hash, sign / verify)
+    "Cyber terminology guessing: Data, Concept, Secret, CIA Triad, C in CIA", //8E
+    "Explain the process: Salts"                                          //9E
+  ]
+};
+
+/* -------------------- App State -------------------- */
+let activeMatch = null;
+let questions = [];            // shuffled for active match
+let boardState = Array(9).fill("");
+let score = { X: 0, O: 0 };
+let currentPlayer = "X";
+let roundCount = 1;
+let currentCell = null;  // last clicked cell DOM
+let passed = false;      // pass state for the last attempted cell
+let goldenIndex = null;
+let goldenShown = false;
+let goldenTimeout = null;
+
+/* Sounds (only correct + pass) */
+const correctSound = new Audio("https://assets.mixkit.co/active_storage/sfx/2841/2841-preview.mp3");
+const passSound = new Audio("https://assets.mixkit.co/active_storage/sfx/2740/2740-preview.mp3");
+
+/* DOM refs */
+const introEl = document.getElementById('intro');
+const gameEl = document.getElementById('game');
+const matchBtns = document.querySelectorAll('.neon-btn[data-match]');
+const cells = document.querySelectorAll('.cell');
+const overlay = document.getElementById('overlay');
+const qBox = document.getElementById('question-box');
+const qText = document.getElementById('question-text');
+const correctBtn = document.getElementById('correctBtn');
+const passBtn = document.getElementById('passBtn');
+const resetBtn = document.getElementById('resetBtn');
+const scoreXEl = document.getElementById('scoreX');
+const scoreOEl = document.getElementById('scoreO');
+const roundCountEl = document.getElementById('roundCount');
+const winnerEl = document.getElementById('winner');
+
+/* Utilities */
+function shuffleArray(arr){
+  const a = [...arr];
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+
+function pickGolden(){
+  goldenIndex = Math.floor(Math.random() * 9);
+  goldenShown = false;
+  cells.forEach(c => c.classList.remove('golden'));
+}
+
+/* Start handlers for intro buttons */
+matchBtns.forEach(btn=>{
+  btn.addEventListener('click', () => {
+    const num = parseInt(btn.getAttribute('data-match'));
+    startMatch(num);
+  });
+});
+
+/* Start a match */
+function startMatch(n){
+  activeMatch = n;
+  // shuffle questions for this match — we keep 9 items, shuffle order
+  questions = shuffleArray(MATCHES[n]).slice(0,9);
+  boardState = Array(9).fill("");
+  // UI reset
+  introEl.style.display = 'none';
+  gameEl.style.display = 'flex';
+  cells.forEach(c => { c.textContent=''; c.classList.remove('golden'); });
+  currentPlayer = "X";
+  roundCount = 1;
+  roundCountEl.textContent = roundCount;
+  winnerEl.textContent = '';
+  pickGolden();
+  // update scores display (keeps previous score)
+  scoreXEl.textContent = score.X || 0;
+  scoreOEl.textContent = score.O || 0;
+}
+
+/* Cell click behavior */
+cells.forEach((cell, idx) => {
+  cell.addEventListener('click', () => {
+    if (!activeMatch) return;
+    if (boardState[idx]) return; // already filled
+    // If popup is open and for another cell, ignore
+    if (qBox.classList.contains('active') && currentCell !== cell) return;
+
+    currentCell = cell;
+
+    // Golden logic: first click on goldenIndex shows hint briefly
+    if (idx === goldenIndex && !goldenShown) {
+      cell.classList.add('golden'); // visual while hint shown
+      goldenShown = true;
+      const hint = getGoldenHintForMatch(activeMatch, idx);
+      showPopup(hint);
+      // hide after few seconds and remove golden visual (so golden only visible while hint shows)
+      goldenTimeout = setTimeout(()=>{
+        hidePopup();
+        cell.classList.remove('golden');
+      }, 4200);
+      return;
+    }
+
+    // Otherwise show question from shuffled questions array
+    const q = questions[idx] || questions[idx % questions.length] || "Question";
+    showPopup(q);
+  });
+});
+
+/* Provide a contextual golden hint depending on question content */
+function getGoldenHintForMatch(matchNum, idx){
+  const raw = MATCHES[matchNum][idx] || '';
+  if (/64|hex|long/i.test(raw)) return "Hint: This relates to a long hex hash (check length).";
+  if (/32 characters|098f6bcd/i.test(raw)) return "Hint: Short MD5-style hash (32 hex chars).";
+  if (/RSA/i.test(raw)) return "Hint: Think public & private keys.";
+  if (/Quishing/i.test(raw) || /phishing/i.test(raw)) return "Hint: Social engineering via QR or links.";
+  if (/Cyber Word Recalling/i.test(raw)) return "Hint: It's a list of cyber terms to recall.";
+  if (/Match the following/i.test(raw)) return "Hint: Match items from two columns.";
+  return "Golden hint: Think cyber-security — this helps you answer faster.";
+}
+
+/* Popup controls */
+function showPopup(text){
+  if (goldenTimeout) { clearTimeout(goldenTimeout); goldenTimeout = null; }
+  qText.textContent = text;
+  qBox.classList.add('active');
+  overlay.style.display = 'block';
+}
+function hidePopup(){
+  qBox.classList.remove('active');
+  overlay.style.display = 'none';
+}
+
+/* Correct button behavior */
+correctBtn.addEventListener('click', () => {
+  if (!currentCell) return;
+  const idx = parseInt(currentCell.dataset.index);
+  if (boardState[idx]) { hidePopup(); currentCell=null; return; }
+
+  // sound
+  correctSound.currentTime = 0;
+  correctSound.play();
+
+  // If cell was passed previously, the mark goes to the other player
+  const mark = passed ? (currentPlayer === 'X' ? 'O' : 'X') : currentPlayer;
+  boardState[idx] = mark;
+  currentCell.textContent = mark;
+
+  hidePopup();
+  passed = false;
+  currentCell = null;
+
+  checkWinner();
+
+  // switch player (unless game ended)
+  currentPlayer = (currentPlayer === 'X') ? 'O' : 'X';
+});
+
+/* Pass button behavior */
+passBtn.addEventListener('click', () => {
+  passSound.currentTime = 0;
+  passSound.play();
+
+  passed = true;
+  hidePopup();
+  // require player to re-click the cell to open the popup again. currentCell reset.
+  currentCell = null;
+});
+
+/* Reset button */
+resetBtn.addEventListener('click', () => resetBoard(false));
+
+/* Winner detection */
+const WIN_COMBOS = [
+  [0,1,2],[3,4,5],[6,7,8],
+  [0,3,6],[1,4,7],[2,5,8],
+  [0,4,8],[2,4,6]
+];
+
+function checkWinner(){
+  for (const [a,b,c] of WIN_COMBOS){
+    if (boardState[a] && boardState[a] === boardState[b] && boardState[a] === boardState[c]) {
+      const player = boardState[a];
+      winnerEl.textContent = `🎉 Player ${player} wins Round ${roundCount}!`;
+      // update score
+      score[player] = (score[player] || 0) + 1;
+      scoreXEl.textContent = score.X || 0;
+      scoreOEl.textContent = score.O || 0;
+      // advance to next round after short delay
+      setTimeout(()=> resetBoard(true), 1400);
+      return;
+    }
+  }
+  // draw condition
+  if (!boardState.includes("")) {
+    winnerEl.textContent = "🤝 It's a draw!";
+    setTimeout(()=> resetBoard(true), 1400);
+  }
+}
+
+/* Reset board for new round or fresh restart */
+function resetBoard(nextRound=false){
+  boardState = Array(9).fill("");
+  cells.forEach(c => { c.textContent=''; c.classList.remove('golden'); });
+  hidePopup();
+  overlay.style.display = 'none';
+  passed = false;
+  currentCell = null;
+  if (goldenTimeout) { clearTimeout(goldenTimeout); goldenTimeout=null; }
+  if (nextRound) {
+    roundCount++;
+    roundCountEl.textContent = roundCount;
+    // re-shuffle questions for the active match
+    questions = shuffleArray(MATCHES[activeMatch]).slice(0,9);
+  }
+  pickGolden();
+  winnerEl.textContent = '';
+}
+
+/* End of script */
+</script>
+</body>
+</html>
